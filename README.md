@@ -1,45 +1,74 @@
 # Brute Force Attack Detection Using Splunk
 
-A beginner-friendly SOC/SIEM lab project that uses **Splunk Enterprise** and **Windows Security logs** to detect repeated failed logon attempts.
+**A hands-on SOC project to detect and investigate repeated failed login attempts using Splunk Enterprise.**
 
-> **Lab scope:** This project was tested in a local Windows lab. The observed source address was `127.0.0.1` (localhost). This is a simulated detection exercise, not evidence of an external attacker or a confirmed account compromise.
+## About the Project
 
-## Project objectives
+Brute force attacks are a common security threat where an attacker tries multiple passwords to gain unauthorized access to an account.
 
-- Collect Windows Security events in Splunk.
-- Identify failed logons using Windows Event ID `4625`.
-- Group failed attempts by time bucket, source IP, and account.
-- Trigger an alert when the configured threshold is reached.
-- Review successful logons (`4624`) during investigation.
-- Visualize failed-login activity in a Splunk dashboard.
+In this project, I used **Splunk Enterprise** to monitor Windows Security logs, identify repeated failed login attempts, and generate alerts when suspicious login activity was detected.
 
-## Tools and environment
+I also created a dashboard to view failed login attempts, usernames, source IP addresses, and login activity over time.
 
-| Component | Details |
+This project helped me gain practical experience in SIEM monitoring, log analysis, alert configuration, and basic security investigation.
+
+## Project Objectives
+
+- Monitor Windows Security Event Logs.
+- Identify failed login attempts.
+- Detect repeated failed login activity.
+- Find the usernames and source IP addresses involved.
+- Configure automated alerts in Splunk.
+- Create a dashboard to monitor suspicious activity.
+- Investigate failed and successful login events.
+
+## Tools and Technologies
+
+| Tool | Purpose |
 |---|---|
-| Operating system | Windows 11 |
-| SIEM | Splunk Enterprise |
-| Splunk URL | `http://localhost:8000` |
-| Index | `main` |
-| Log source | Windows Security event log |
-| Sourcetype used in the lab | `WinEventLog:Security` |
-| Failed logon event | `4625` |
-| Successful logon event | `4624` |
+| Windows 11 | Generate login events |
+| Splunk Enterprise | Log monitoring and analysis |
+| Windows Security Logs | Login event data |
+| SPL | Search and detection queries |
 
-## How it works
+## Windows Event IDs Used
 
-1. Enable Windows logon auditing for Success and Failure.
-2. Configure Splunk to ingest the Windows Security event log.
-3. Generate controlled failed logon attempts in the lab.
-4. Search for Event ID `4625`.
-5. Group failed events into five-minute buckets by source and account.
-6. Trigger a scheduled alert when five or more failures are found in a bucket.
-7. Review related `4624` events and investigate the source/account context.
-8. Display the results in a Splunk dashboard.
+| Event ID | Description |
+|---|---|
+| 4625 | Failed login attempt |
+| 4624 | Successful login |
 
-## Detection logic
+## Project Implementation
 
-The detection search uses a five-minute, clock-aligned time bucket. It is **not a rolling five-minute window**.
+### 1. Configure Windows Auditing
+
+Enabled auditing for successful and failed login attempts to generate Windows Security events.
+
+### 2. Collect Logs in Splunk
+
+Configured Splunk to collect Windows Security logs and searched for login events.
+
+### 3. Identify Failed Login Attempts
+
+Used Event ID 4625 to find failed login attempts.
+
+### 4. Create Brute Force Detection Query
+
+Grouped failed login attempts by time, source IP, and username. Flagged groups with five or more attempts in a five-minute time bucket.
+
+### 5. Configure an Alert
+
+Created a scheduled alert in Splunk to detect matching activity every five minutes.
+
+### 6. Build a Dashboard
+
+Created a dashboard to display failed login activity and support investigation.
+
+### 7. Investigate Suspicious Activity
+
+Reviewed usernames, source IP addresses, timestamps, and login event details.
+
+## Brute Force Detection – SPL Query
 
 ```spl
 index=main EventCode=4625
@@ -52,83 +81,93 @@ index=main EventCode=4625
 | sort -failed_attempts
 ```
 
-The threshold is configurable. In this lab, it was set to **5 failed attempts**.
+**How the query works:**
 
-## Alert configuration used
+- Searches for failed login events.
+- Extracts the username and source IP address.
+- Groups events into five-minute time buckets.
+- Shows groups with five or more failed attempts.
 
-| Setting | Value |
+## Alert Configuration
+
+| Setting | Configuration |
 |---|---|
-| Alert name | Brute Force Attack Detection |
-| Type | Scheduled |
-| Schedule | Every 5 minutes (`*/5 * * * *`) |
-| Search time range | Last 5 minutes |
-| Trigger condition | Number of results greater than 0 |
-| Trigger action | Add to Triggered Alerts |
+| Alert Name | Brute Force Attack Detection |
+| Alert Type | Scheduled |
+| Schedule | Every 5 minutes |
+| Time Range | Last 5 minutes |
+| Trigger Condition | Number of Results > 0 |
 | Severity | High |
+| Action | Add to Triggered Alerts |
 
-## Dashboard panels
+**Result:** Successfully triggered and verified the alert in Splunk during testing.
 
-The Classic Dashboard was named **Brute Force Attack Detection** and included:
+## Splunk Dashboard
 
-- Total Failed Login Attempts
-- Failed Login Attempts by Username
-- Failed Login Attempts by Source IP
+Created a dashboard with five panels to monitor and analyze login activity.
 
-Additional panels can be added using the searches in [`spl/`](spl/).
+1. Total Failed Login Attempts
+2. Failed Attempts by Username
+3. Failed Attempts by Source IP
+4. Failed Login Timeline
+5. Recent Failed Login Events
 
-## Lab observations
+The dashboard time range was set to the last seven days.
 
-- The dashboard showed **14 failed-login events** at the time it was checked.
-- One inspected sequence contained **five failed attempts** between `02:28:41` and `02:28:56` on `16 November 2026`.
-- The source address shown for those attempts was `127.0.0.1`, the loopback address.
-- The alert appeared in Splunk's Triggered Alerts view during testing.
-- Successful logon events were also present, but the successful events shown in the inspected sequence occurred before the five-failure sequence.
+## Project Screenshots
 
-### Important investigation notes
+Screenshots of the Splunk searches, detection results, alert configuration, triggered alert, and dashboard are available in the `docs/screenshots/` folder.
 
-- `127.0.0.1` is localhost; do not describe this lab result as an external IP attack.
-- Windows creates background logon events for services and system accounts.
-- Some extracted fields appeared duplicated or overlapped (for example, account values such as `Admin` and `WINDC$`). Validate raw event details before treating those as separate user attempts.
-- A threshold alert is a signal for investigation, not proof of compromise.
-- The `bin _time span=5m` command creates fixed time buckets. Attempts on opposite sides of a bucket boundary may not be grouped together.
-
-## Repository structure
+## Repository Structure
 
 ```text
 brute-force-detection-splunk/
+│
 ├── README.md
+├── .gitignore
+│
 ├── spl/
 │   ├── 01_failed_logons.spl
 │   ├── 02_brute_force_detection.spl
 │   ├── 03_failed_by_username.spl
 │   ├── 04_failed_by_source_ip.spl
 │   ├── 05_failed_login_timeline.spl
-│   └── 06_recent_failed_events.spl
+│   ├── 06_recent_failed_events.spl
+│   └── 07_failed_and_successful_logons.spl
+│
 └── docs/
     └── screenshots/
 ```
 
-## Screenshots to add
+## Project Results
 
-Create `docs/screenshots/` and add your own screenshots, such as:
+- Detected repeated failed login attempts in Windows Security logs.
+- Identified the source IP address and usernames associated with the events.
+- Successfully configured and triggered a Splunk alert.
+- Created a dashboard for monitoring and investigation.
+- Observed local lab activity from `127.0.0.1` during testing.
 
-1. Windows Security event collection/input configuration.
-2. Search results showing Event ID `4625`.
-3. Detection search and matching result.
-4. Alert configuration.
-5. Triggered Alerts page.
-6. Dashboard overview and panels.
+## What I Learned
 
-Do not include real usernames, public IPs, hostnames, or other sensitive information in screenshots unless you have permission to publish them. Redact anything private.
+- Working with Splunk Enterprise.
+- Writing SPL queries for security investigations.
+- Analyzing Windows Security Event Logs.
+- Understanding failed and successful login events.
+- Configuring scheduled alerts.
+- Creating SIEM dashboards.
+- Performing basic security event investigation.
 
-## Limitations and future improvements
+## Future Improvements
 
-- Validate field extractions against raw Windows event details.
-- Exclude known service/system accounts where appropriate.
-- Consider a rolling-window detection if that behavior is required.
-- Add controlled tests from a second lab host to compare local and remote source addresses.
-- Enrich alerts with host, account, and network context.
+- Add email notifications for triggered alerts.
+- Improve detection using rolling time windows.
+- Add detection for successful login after repeated failures.
+- Extend monitoring to multiple systems.
 
 ## Disclaimer
 
-This repository is for educational and authorized lab use only. Run tests only on systems and accounts you own or are explicitly authorized to assess.
+This project was created in a controlled local lab environment for learning purposes. The login attempts were generated for testing and do not represent a confirmed real-world attack.
+
+**Author:** Nandu
+
+
