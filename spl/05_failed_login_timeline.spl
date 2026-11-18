@@ -1,0 +1,2 @@
+index=main EventCode=4625
+| timechart span=5m count as Failed_Login_Attempts

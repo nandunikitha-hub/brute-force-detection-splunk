@@ -1,0 +1,4 @@
+index=main EventCode=4625
+| eval username=coalesce(TargetUserName, Account_Name)
+| stats count as Failed_Attempts by username
+| sort - Failed_Attempts

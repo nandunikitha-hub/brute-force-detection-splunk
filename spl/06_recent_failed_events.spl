@@ -1,0 +1,5 @@
+index=main EventCode=4625
+| eval username=coalesce(TargetUserName, Account_Name)
+| eval source_ip=coalesce(IpAddress, Source_Network_Address)
+| table _time username source_ip EventCode
+| sort -_time

@@ -1,0 +1,4 @@
+index=main (EventCode=4624 OR EventCode=4625) Account_Name="Admin" Source_Network_Address="127.0.0.1"
+| eval Status=if(EventCode=4625,"Failed","Successful")
+| table _time Status Account_Name Source_Network_Address LogonType
+| sort _time
